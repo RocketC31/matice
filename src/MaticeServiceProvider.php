@@ -25,9 +25,9 @@ class MaticeServiceProvider extends ServiceProvider
         // $this->loadRoutesFrom(__DIR__.'/routes.php');
 
         if ($this->app->runningInConsole()) {
-             $this->publishes([
-             __DIR__.'/../config/config.php' => config_path('matice.php'),
-             ], 'config');
+            $this->publishes([
+                __DIR__ . '/../config/matice.php' => config_path('matice.php'),
+            ], 'config');
 
             // Publishing the views.
             /*$this->publishes([
@@ -43,12 +43,12 @@ class MaticeServiceProvider extends ServiceProvider
             /*$this->publishes([
                 __DIR__.'/../resources/lang' => resource_path('lang/vendor/matice'),
             ], 'lang');*/
-
-            // Registering package commands.
-            $this->commands([
-                TranslationsGeneratorCommand::class,
-            ]);
         }
+
+        // Registering package commands.
+        $this->commands([
+            TranslationsGeneratorCommand::class,
+        ]);
 
         Translator::macro('list', function () {
             return MaticeServiceProvider::makeFolderFilesTree(config('matice.lang_directory'));
@@ -62,7 +62,6 @@ class MaticeServiceProvider extends ServiceProvider
                 ? 'true' : 'false';
 
             return "<?php echo app()->make('matice')->generate($locale, true, $useCache); ?>";
-            /*return "<?php echo 'Matice kaka'; ?>";*/
         });
     }
 
@@ -72,7 +71,7 @@ class MaticeServiceProvider extends ServiceProvider
     public function register()
     {
         // Automatically apply the package configuration
-        $this->mergeConfigFrom(__DIR__.'/../config/config.php', 'matice');
+        $this->mergeConfigFrom(__DIR__ . '/../config/matice.php', 'matice');
 
         // Register the main class to use with the facade
         $this->app->singleton('matice', function () {
@@ -80,56 +79,8 @@ class MaticeServiceProvider extends ServiceProvider
         });
     }
 
-
-    /**
-     * Load all folders and files (php and json) inside of a directory and
-     * return an array representation of them.
-     *
-     * @param $dir
-     * @return array
-     */
     public static function makeFolderFilesTree($dir): array
     {
-        $tree = [];
-        $ffs = scandir($dir);
-
-        foreach ($ffs as $ff) {
-            if (! Str::startsWith($ff, '.')) {
-
-                $extension = '.' . Str::afterLast($ff, '.');
-
-                $ff = basename($ff, $extension);
-
-                $tree[$ff] = [];
-
-                if (is_dir($dir . '/' . $ff)) {
-
-                    $tree[$ff] = MaticeServiceProvider::makeFolderFilesTree($dir . '/' . $ff);
-
-                }
-
-                if (is_file($pathName = $dir . '/' . $ff . $extension)) {
-
-                    if ($extension === '.json') {
-
-                        $existingTranslations = $tree[$ff] ?? [];
-
-                        $tree[$ff] = array_merge(
-                            $existingTranslations,
-                            json_decode(File::get($pathName), true)
-                        );
-
-                    } else if ($extension === '.php') {
-
-                        $tree[$ff] = require($pathName);
-
-                    }
-
-                }
-
-            }
-        }
-
-        return $tree;
+        return Helpers::makeFolderFilesTree($dir);
     }
 }

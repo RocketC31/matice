@@ -33,9 +33,7 @@ class ManageTranslationTest extends TestCase
      */
     public function loadTranslations()
     {
-        // $translations = app()->make('matice')->translations('./assets/lang');
-        // dd(__DIR__ . ('/test/assets/lang'));
-        $translations = Matice::translations($this->langDir);
+        $translations = Matice::translations();
 
         $this->assertIsArray($translations);
 
@@ -53,7 +51,7 @@ class ManageTranslationTest extends TestCase
     {
         $jsOutput = Matice::generate();
 
-        $this->assertStringContainsString('<script type="text/javascript">', $jsOutput);
+        $this->assertStringContainsString('<script id="matice-translations">', $jsOutput);
 
 
         // ================== Test the blade directive ===================
@@ -70,5 +68,62 @@ class ManageTranslationTest extends TestCase
         $this->assertTrue("<?php echo app()->make('matice')->generate(null, true, false); ?>" === $bladeOutPut1);
         $this->assertTrue("<?php echo app()->make('matice')->generate('en', true, false); ?>" === $bladeOutPut2);
         $this->assertTrue("<?php echo app()->make('matice')->generate(null, true, true); ?>" === $bladeOutPut3);
+    }
+
+    public function test_namespaces_can_be_excepted()
+    {
+        config(['matice.except' => [
+            'en/example1/', // Works with ile without extension
+            'en/example2.json', // Works with file with extension
+        ]]);
+
+        $translations = Matice::translations();
+
+        $this->assertArrayNotHasKey('example1', $translations['en']);
+        $this->assertArrayNotHasKey('example2', $translations['en']);
+        $this->assertArrayHasKey('folder', $translations['en']);
+
+        config(['matice.except' => [
+            'en/folder', // Works with folder
+        ]]);
+
+        $translations = Matice::translations();
+
+        $this->assertArrayNotHasKey('folder', $translations['en']);
+    }
+
+    public function test_only_certain_namespaces_can_be_exported()
+    {
+        config(['matice.only' => [
+            'en/example1/',
+            'en/example2/',
+        ]]);
+
+        $translations = Matice::translations();
+
+        $this->assertArrayHasKey('example1', $translations['en']);
+        $this->assertArrayHasKey('example2', $translations['en']);
+        $this->assertArrayNotHasKey('folder', $translations['en']);
+    }
+
+    /**
+     * When a namespace is included and excepted at the same time, it considered excepted.
+     */
+    public function test_only_namespaces_can_be_both_exported_and_excepted()
+    {
+        config(['matice.only' => [
+            'en/example1/',
+            'en/example2/',
+        ]]);
+
+        config(['matice.except' => [
+            'en/example2/',
+        ]]);
+
+        $translations = Matice::translations();
+
+        $this->assertArrayHasKey('example1', $translations['en']);
+        $this->assertArrayNotHasKey('example2', $translations['en']);
+        $this->assertArrayNotHasKey('folder', $translations['en']);
     }
 }
